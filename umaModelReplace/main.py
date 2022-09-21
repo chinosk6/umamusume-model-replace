@@ -88,17 +88,28 @@ class UmaReplace:
             f.write(env.file.save())
         return save_name
 
-    def get_bundle_hash(self, path: str) -> str:
+    def get_bundle_hash(self, path: str, query_orig_id: t.Optional[str]) -> str:
         cursor = self.conn.cursor()
         query = cursor.execute("SELECT h FROM a WHERE n=?", [path]).fetchone()
         if query is None:
+            if (query_orig_id is not None) and ("_" in query_orig_id):
+                query_id, query_sub_id = query_orig_id.split("_")
+
+                if query is None:
+                    new_path = path.replace(query_orig_id, f"{query_id}_%")
+                    query = cursor.execute("SELECT h, n FROM a WHERE n LIKE ?", [new_path]).fetchone()
+                    if query is not None:
+                        print(f"{path} not found, but found {query[1]}")
+
+        if query is None:
             raise UmaFileNotFoundError(f"{path} not found!")
+
         cursor.close()
         return query[0]
 
     def replace_file_ids(self, orig_path: str, new_path: str, id_orig: str, id_new: str):
-        orig_hash = self.get_bundle_hash(orig_path)
-        new_hash = self.get_bundle_hash(new_path)
+        orig_hash = self.get_bundle_hash(orig_path, id_orig)
+        new_hash = self.get_bundle_hash(new_path, id_new)
         self.file_backup(orig_hash)
         edt_bundle_file_path = self.replace_file_path(self.get_bundle_path(new_hash), id_new, id_orig,
                                                       f"{EDITED_PATH}/{orig_hash}")
@@ -140,7 +151,7 @@ class UmaReplace:
         """
         def check_vaild_path(paths: list):
             try:
-                self.get_bundle_hash(paths[0])
+                self.get_bundle_hash(paths[0], None)
             except UmaFileNotFoundError:
                 return False
             return True
