@@ -254,7 +254,7 @@ class UmaReplace:
                 print(e)
 
 
-a = UmaReplace()
+# a = UmaReplace()
 # a.file_backup("6NX7AYDRVFFGWKVGA4TDKUX2N63TRWRT")
 # a.replace_file_path("5IU2HDJHXDO3ISZSXXOQWXF7VEOG5OCX", "1046", "")
 # a.replace_body("1046_02", "1098_00")
