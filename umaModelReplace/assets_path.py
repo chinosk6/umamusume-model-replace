@@ -1,8 +1,21 @@
 
+def get_body_mtl_names(_id):
+    return [
+        f"tex_bdy{_id}_shad_c",
+        f"tex_bdy{_id}_base",
+        f"tex_bdy{_id}_ctrl",
+        f"tex_bdy{_id}_diff"
+    ]
+
+
+def get_body_mtl_path(_id):
+    return f"sourceresources/3d/chara/body/bdy{_id}/materials/mtl_bdy{_id}"
+
+
 def get_body_path(_id):
     return [
         f"3d/chara/body/bdy{_id}/pfb_bdy{_id}",
-        f"sourceresources/3d/chara/body/bdy{_id}/materials/mtl_bdy{_id}"
+        get_body_mtl_path(_id)
     ]
 
 

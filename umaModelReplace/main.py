@@ -3,6 +3,7 @@ import sqlite3
 import os
 import shutil
 import typing as t
+from PIL import Image
 from . import assets_path
 
 spath = os.path.split(__file__)[0]
@@ -88,6 +89,51 @@ class UmaReplace:
             f.write(env.file.save())
         return save_name
 
+
+    def replace_texture2d(self, bundle_name: str):
+        edited_path = f"./editTexture/{bundle_name}"
+        if not os.path.isdir(edited_path):
+            raise UmaFileNotFoundError(f"path: {edited_path} not found. Please extract first.")
+
+        file_names = os.listdir(edited_path)
+
+        env = UnityPy.load(self.get_bundle_path(bundle_name))
+        for obj in env.objects:
+            if obj.type.name == "Texture2D":
+                data = obj.read()
+                if hasattr(data, "name"):
+                    if f"{data.name}.png" in file_names:
+                        img_data = data.read()
+                        img_data.image = Image.open(f"{edited_path}/{data.name}.png")
+                        data.save()
+
+        save_name = f"{EDITED_PATH}/{os.path.split(bundle_name)[-1]}"
+        with open(save_name, "wb") as f:
+            f.write(env.file.save())
+        return save_name
+
+
+    def get_texture_in_bundle(self, bundle_name: str, src_names: t.List[str], force_replace=False):
+        base_path = f"./editTexture/{bundle_name}"
+        if not os.path.isdir(base_path):
+            os.makedirs(base_path)
+
+        if not force_replace:
+            if len(os.listdir(base_path)) > 0:
+                return False, base_path
+
+        env = UnityPy.load(self.get_bundle_path(bundle_name))
+        for obj in env.objects:
+            if obj.type.name == "Texture2D":
+                data = obj.read()
+                if hasattr(data, "name"):
+                    if data.name in src_names:
+                        img_data = data.read()
+                        image: Image = img_data.image
+                        image.save(f"{base_path}/{data.name}.png")
+                        print(f"save {data.name} into {f'{base_path}/{data.name}.png'}")
+        return True, base_path
+
     def get_bundle_hash(self, path: str, query_orig_id: t.Optional[str]) -> str:
         cursor = self.conn.cursor()
         query = cursor.execute("SELECT h FROM a WHERE n=?", [path]).fetchone()
@@ -106,6 +152,19 @@ class UmaReplace:
 
         cursor.close()
         return query[0]
+
+    def save_char_body_texture(self, char_id: str, force_replace=False):
+        mtl_bdy_path = assets_path.get_body_mtl_path(char_id)
+        bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
+        return self.get_texture_in_bundle(bundle_hash, assets_path.get_body_mtl_names(char_id), force_replace)
+
+    def replace_char_body_texture(self, char_id: str):
+        mtl_bdy_path = assets_path.get_body_mtl_path(char_id)
+        bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
+        self.file_backup(bundle_hash)
+        edited_path = self.replace_texture2d(bundle_hash)
+        # print("save", edited_path)
+        shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
 
     def replace_file_ids(self, orig_path: str, new_path: str, id_orig: str, id_new: str):
         orig_hash = self.get_bundle_hash(orig_path, id_orig)
@@ -195,7 +254,7 @@ class UmaReplace:
                 print(e)
 
 
-# a = UmaReplace()
+a = UmaReplace()
 # a.file_backup("6NX7AYDRVFFGWKVGA4TDKUX2N63TRWRT")
 # a.replace_file_path("5IU2HDJHXDO3ISZSXXOQWXF7VEOG5OCX", "1046", "")
 # a.replace_body("1046_02", "1098_00")

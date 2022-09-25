@@ -25,6 +25,7 @@ python main.py
 [2] replace body model
 [3] replace tail model (deprecated)
 [4] replace head and body model
+[5] replace body materials
 [98] restore your changes
 [99] exit
 ```
