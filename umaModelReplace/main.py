@@ -10,6 +10,7 @@ spath = os.path.split(__file__)[0]
 BACKUP_PATH = f"{spath}/backup"
 EDITED_PATH = f"{spath}/edited"
 
+
 class UmaFileNotFoundError(FileNotFoundError):
     pass
 
@@ -55,6 +56,8 @@ class UmaReplace:
     def replace_file_path(fname: str, id1: str, id2: str, save_name: t.Optional[str] = None) -> str:
         env = UnityPy.load(fname)
 
+        data = None
+
         for obj in env.objects:
             if obj.type.name not in ["Avatar"]:
                 data = obj.read()
@@ -85,10 +88,16 @@ class UmaReplace:
 
         if save_name is None:
             save_name = f"{EDITED_PATH}/{os.path.split(fname)[-1]}"
-        with open(save_name, "wb") as f:
-            f.write(env.file.save())
+        if data is None:
+            with open(fname, "rb") as f:
+                data = f.read()
+                data = data.replace(id1.encode("utf8"), id2.encode("utf8"))
+            with open(save_name, "wb") as f:
+                f.write(data)
+        else:
+            with open(save_name, "wb") as f:
+                f.write(env.file.save())
         return save_name
-
 
     def replace_texture2d(self, bundle_name: str):
         edited_path = f"./editTexture/{bundle_name}"
@@ -111,7 +120,6 @@ class UmaReplace:
         with open(save_name, "wb") as f:
             f.write(env.file.save())
         return save_name
-
 
     def get_texture_in_bundle(self, bundle_name: str, src_names: t.List[str], force_replace=False):
         base_path = f"./editTexture/{bundle_name}"
@@ -208,13 +216,13 @@ class UmaReplace:
         :param id_orig: 原id, 例: 1046
         :param id_new: 新id
         """
+
         def check_vaild_path(paths: list):
             try:
                 self.get_bundle_hash(paths[0], None)
             except UmaFileNotFoundError:
                 return False
             return True
-
 
         orig_paths1 = assets_path.get_tail1_path(id_orig)
         orig_paths2 = assets_path.get_tail2_path(id_orig)
@@ -253,6 +261,101 @@ class UmaReplace:
             except UmaFileNotFoundError as e:
                 print(e)
 
+    def edit_gac_chr_start(self, dress_id: str, type: str):
+        """
+        替换开门人物
+        :param dress_id: 目标开门id, 例: 100101
+        :param type: 001骏川手纲，002秋川弥生
+        """
+        def edit_chr(orig_hash: str, dress_id: str):
+            env = UnityPy.load(self.get_bundle_path(orig_hash))
+            for obj in env.objects:
+                if obj.type.name == "MonoBehaviour":
+                    if obj.serialized_type.nodes:
+                        tree = obj.read_typetree()
+                        if "runtime_gac_chr_start_00" in tree["m_Name"]:
+                            tree["_characterList"][0]["_characterKeys"]["_selectCharaId"] = int(dress_id[:-2])
+                            tree["_characterList"][0]["_characterKeys"]["_selectClothId"] = int(dress_id)
+                            obj.save_typetree(tree)
+            with open(f"{EDITED_PATH}/{orig_hash}", "wb") as f:
+                f.write(env.file.save())
+
+        path = assets_path.get_gac_chr_start_path(type)
+        orig_hash = self.get_bundle_hash(path, None)
+        self.file_backup(orig_hash)
+        edit_chr(orig_hash, dress_id)
+        shutil.copyfile(f"{EDITED_PATH}/{orig_hash}", self.get_bundle_path(orig_hash))
+
+    def edit_cutin_skill(self, id_orig: str, id_target: str):
+        """
+        替换技能
+        :param id_orig: 原id, 例: 100101
+        :param id_target: 新id
+        """
+        target_path = assets_path.get_cutin_skill_path(id_target)
+        target_hash = self.get_bundle_hash(target_path, None)
+        target = UnityPy.load(self.get_bundle_path(target_hash))
+
+        target_tree = None
+        target_clothe_id = None
+        target_cy_spring_name_list = None
+
+        for obj in target.objects:
+            if obj.type.name == "MonoBehaviour":
+                if obj.serialized_type.nodes:
+                    tree = obj.read_typetree()
+                    if "runtime_crd1" in tree["m_Name"]:
+                        target_tree = tree
+                        for character in tree["_characterList"]:
+                            target_clothe_id = str(character["_characterKeys"]["_selectClothId"])
+
+        if target_tree is None:
+            print("目标无法解析")
+            return
+
+        for character in target_tree["_characterList"]:
+            for targetList in character["_characterKeys"]["thisList"]:
+                if len(targetList["_enableCySpringList"]) > 0:
+                    target_cy_spring_name_list = targetList["_targetCySpringNameList"]
+
+        orig_path = assets_path.get_cutin_skill_path(id_orig)
+        orig_hash = self.get_bundle_hash(orig_path, None)
+        self.file_backup(orig_hash)
+        env = UnityPy.load(self.get_bundle_path(orig_hash))
+
+        for obj in env.objects:
+            if obj.type.name == "MonoBehaviour":
+                if obj.serialized_type.nodes:
+                    tree = obj.read_typetree()
+                    if "runtime_crd1" in tree["m_Name"]:
+                        for character in tree["_characterList"]:
+                            character["_characterKeys"]["_selectCharaId"] = int(target_clothe_id[:-2])
+                            character["_characterKeys"]["_selectClothId"] = int(target_clothe_id)
+                            character["_characterKeys"]["_selectHeadId"] = 0
+                            for outputList in character["_characterKeys"]["thisList"]:
+                                if len(outputList["_enableCySpringList"]) > 0:
+                                    outputList["_enableCySpringList"] = [1] * len(target_cy_spring_name_list)
+                                    outputList["_targetCySpringNameList"] = target_cy_spring_name_list
+                        obj.save_typetree(tree)
+
+        with open(f"{EDITED_PATH}/{orig_hash}", "wb") as f:
+            f.write(env.file.save())
+        shutil.copyfile(f"{EDITED_PATH}/{orig_hash}", self.get_bundle_path(orig_hash))
+        print("替换完成")
+
+    def replace_race_result(self, id_orig: str, id_new: str):
+        """
+        替换G1胜利动作
+        :param id_orig: 原id, 例: 100101
+        :param id_new: 新id
+        """
+        orig_paths = assets_path.get_crd_race_result_path(id_orig)
+        new_paths = assets_path.get_crd_race_result_path(id_new)
+        for i in range(len(orig_paths)):
+            try:
+                self.replace_file_ids(orig_paths[i], new_paths[i], id_orig, id_new)
+            except UmaFileNotFoundError as e:
+                print(e)
 
 # a = UmaReplace()
 # a.file_backup("6NX7AYDRVFFGWKVGA4TDKUX2N63TRWRT")
