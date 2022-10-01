@@ -10,6 +10,7 @@ spath = os.path.split(__file__)[0]
 BACKUP_PATH = f"{spath}/backup"
 EDITED_PATH = f"{spath}/edited"
 
+
 class UmaFileNotFoundError(FileNotFoundError):
     pass
 
@@ -20,6 +21,7 @@ class UmaReplace:
         profile_path = os.environ.get("UserProfile")
         self.base_path = f"{profile_path}/AppData/LocalLow/Cygames/umamusume"
         self.conn = sqlite3.connect(f"{self.base_path}/meta")
+        self.master_conn = sqlite3.connect(f"{self.base_path}/master/master.mdb")
 
     @staticmethod
     def init_folders():
@@ -55,6 +57,8 @@ class UmaReplace:
     def replace_file_path(fname: str, id1: str, id2: str, save_name: t.Optional[str] = None) -> str:
         env = UnityPy.load(fname)
 
+        data = None
+
         for obj in env.objects:
             if obj.type.name not in ["Avatar"]:
                 data = obj.read()
@@ -85,10 +89,16 @@ class UmaReplace:
 
         if save_name is None:
             save_name = f"{EDITED_PATH}/{os.path.split(fname)[-1]}"
-        with open(save_name, "wb") as f:
-            f.write(env.file.save())
+        if data is None:
+            with open(fname, "rb") as f:
+                data = f.read()
+                data = data.replace(id1.encode("utf8"), id2.encode("utf8"))
+            with open(save_name, "wb") as f:
+                f.write(data)
+        else:
+            with open(save_name, "wb") as f:
+                f.write(env.file.save())
         return save_name
-
 
     def replace_texture2d(self, bundle_name: str):
         edited_path = f"./editTexture/{bundle_name}"
@@ -111,7 +121,6 @@ class UmaReplace:
         with open(save_name, "wb") as f:
             f.write(env.file.save())
         return save_name
-
 
     def get_texture_in_bundle(self, bundle_name: str, src_names: t.List[str], force_replace=False):
         base_path = f"./editTexture/{bundle_name}"
@@ -208,13 +217,13 @@ class UmaReplace:
         :param id_orig: 原id, 例: 1046
         :param id_new: 新id
         """
+
         def check_vaild_path(paths: list):
             try:
                 self.get_bundle_hash(paths[0], None)
             except UmaFileNotFoundError:
                 return False
             return True
-
 
         orig_paths1 = assets_path.get_tail1_path(id_orig)
         orig_paths2 = assets_path.get_tail2_path(id_orig)
@@ -253,6 +262,171 @@ class UmaReplace:
             except UmaFileNotFoundError as e:
                 print(e)
 
+    def edit_gac_chr_start(self, dress_id: str, type: str):
+        """
+        替换开门人物
+        :param dress_id: 目标开门id, 例: 100101
+        :param type: 001骏川手纲，002秋川弥生
+        """
+
+        def edit_chr(orig_hash: str, dress_id: str):
+            env = UnityPy.load(self.get_bundle_path(orig_hash))
+            for obj in env.objects:
+                if obj.type.name == "MonoBehaviour":
+                    if obj.serialized_type.nodes:
+                        tree = obj.read_typetree()
+                        if "runtime_gac_chr_start_00" in tree["m_Name"]:
+                            tree["_characterList"][0]["_characterKeys"]["_selectCharaId"] = int(dress_id[:-2])
+                            tree["_characterList"][0]["_characterKeys"]["_selectClothId"] = int(dress_id)
+                            obj.save_typetree(tree)
+            with open(f"{EDITED_PATH}/{orig_hash}", "wb") as f:
+                f.write(env.file.save())
+
+        path = assets_path.get_gac_chr_start_path(type)
+        orig_hash = self.get_bundle_hash(path, None)
+        self.file_backup(orig_hash)
+        edit_chr(orig_hash, dress_id)
+        shutil.copyfile(f"{EDITED_PATH}/{orig_hash}", self.get_bundle_path(orig_hash))
+
+    def edit_cutin_skill(self, id_orig: str, id_target: str):
+        """
+        替换技能
+        :param id_orig: 原id, 例: 100101
+        :param id_target: 新id
+        """
+        try:
+            target_path = assets_path.get_cutin_skill_path(id_target)
+            target_hash = self.get_bundle_hash(target_path, None)
+            target = UnityPy.load(self.get_bundle_path(target_hash))
+
+            target_tree = None
+            target_clothe_id = None
+            target_cy_spring_name_list = None
+
+            for obj in target.objects:
+                if obj.type.name == "MonoBehaviour":
+                    if obj.serialized_type.nodes:
+                        tree = obj.read_typetree()
+                        if "runtime_crd1" in tree["m_Name"]:
+                            target_tree = tree
+                            for character in tree["_characterList"]:
+                                target_clothe_id = str(character["_characterKeys"]["_selectClothId"])
+
+            if target_tree is None:
+                print("目标无法解析")
+                return
+
+            for character in target_tree["_characterList"]:
+                for targetList in character["_characterKeys"]["thisList"]:
+                    if len(targetList["_enableCySpringList"]) > 0:
+                        target_cy_spring_name_list = targetList["_targetCySpringNameList"]
+
+            orig_path = assets_path.get_cutin_skill_path(id_orig)
+            orig_hash = self.get_bundle_hash(orig_path, None)
+            self.file_backup(orig_hash)
+            env = UnityPy.load(self.get_bundle_path(orig_hash))
+
+            for obj in env.objects:
+                if obj.type.name == "MonoBehaviour":
+                    if obj.serialized_type.nodes:
+                        tree = obj.read_typetree()
+                        if "runtime_crd1" in tree["m_Name"]:
+                            for character in tree["_characterList"]:
+                                character["_characterKeys"]["_selectCharaId"] = int(target_clothe_id[:-2])
+                                character["_characterKeys"]["_selectClothId"] = int(target_clothe_id)
+                                character["_characterKeys"]["_selectHeadId"] = 0
+                                for outputList in character["_characterKeys"]["thisList"]:
+                                    if len(outputList["_enableCySpringList"]) > 0:
+                                        outputList["_enableCySpringList"] = [1] * len(target_cy_spring_name_list)
+                                        outputList["_targetCySpringNameList"] = target_cy_spring_name_list
+                            obj.save_typetree(tree)
+
+            with open(f"{EDITED_PATH}/{orig_hash}", "wb") as f:
+                f.write(env.file.save())
+            shutil.copyfile(f"{EDITED_PATH}/{orig_hash}", self.get_bundle_path(orig_hash))
+            print("替换完成")
+        except UmaFileNotFoundError as e:
+            print(e)
+
+    def replace_race_result(self, id_orig: str, id_new: str):
+        """
+        替换G1胜利动作
+        :param id_orig: 原id, 例: 100101
+        :param id_new: 新id
+        """
+        orig_paths = assets_path.get_crd_race_result_path(id_orig)
+        new_paths = assets_path.get_crd_race_result_path(id_new)
+        for i in range(len(orig_paths)):
+            try:
+                self.replace_file_ids(orig_paths[i], new_paths[i], id_orig, id_new)
+            except UmaFileNotFoundError as e:
+                print(e)
+
+    def unlock_live_dress(self):
+
+        def dict_factory(cursor, row):
+            d = {}
+            for idx, col in enumerate(cursor.description):
+                d[col[0]] = row[idx]
+            return d
+
+        def get_all_dress_in_table():
+            self.master_conn.row_factory = dict_factory
+            cursor = self.master_conn.cursor()
+            cursor.execute("SELECT * FROM dress_data")
+            # fetchall as result
+            query = cursor.fetchall()
+            # close connection
+            cursor.close()
+            return query
+
+        def get_unique_in_table():
+            self.conn.row_factory = dict_factory
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT n FROM a WHERE n like '%pfb_chr1____90'")
+            # fetchall as result
+            names = cursor.fetchall()
+            # close connection
+            cursor.close()
+            list = []
+            for name in names:
+                list.append(name["n"][-7:-3])
+            return list
+
+        def create_data(dress, unique):
+            dress['id'] = dress['id'] + 89
+            dress['body_type_sub'] = 90
+            if str(dress['id'])[:-2] in set(unique):
+                dress['head_sub_id'] = 90
+            else:
+                dress['head_sub_id'] = 0
+            self.master_conn.row_factory = dict_factory
+            cursor = self.master_conn.cursor()
+            cursor.execute("INSERT INTO dress_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                           [dress['id'], dress['condition_type'], dress['have_mini'], dress['general_purpose'],
+                            dress['costume_type'], dress['chara_id'], dress['use_gender'], dress['body_shape'],
+                            dress['body_type'], dress['body_type_sub'], dress['body_setting'], dress['use_race'],
+                            dress['use_live'], dress['use_live_theater'], dress['use_home'], dress['use_dress_change'],
+                            dress['is_wet'], dress['is_dirt'], dress['head_sub_id'], dress['use_season'],
+                            dress['dress_color_main'], dress['dress_color_sub'], dress['color_num'],
+                            dress['disp_order'],
+                            dress['tail_model_id'], dress['tail_model_sub_id'], dress['start_time'], dress['end_time']])
+            self.master_conn.commit()
+            cursor.close()
+
+        def unlock_data():
+            self.master_conn.row_factory = dict_factory
+            cursor = self.master_conn.cursor()
+            cursor.execute("UPDATE dress_data SET use_live = 1, use_live_theater = 1")
+            self.master_conn.commit()
+            cursor.close()
+
+        dresses = get_all_dress_in_table()
+        unique = get_unique_in_table()
+        for dress in dresses:
+            if 100000 < dress['id'] < 200000 and str(dress['id']).endswith('01'):
+                create_data(dress, unique)
+        unlock_data()
 
 # a = UmaReplace()
 # a.file_backup("6NX7AYDRVFFGWKVGA4TDKUX2N63TRWRT")
