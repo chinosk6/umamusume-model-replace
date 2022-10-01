@@ -29,6 +29,7 @@ python main.py
 [6] replace gacha character
 [7] replace skill character
 [8] replace g1 victory character action (Experimental)
+[9] unlock live dress
 [98] restore your changes
 [99] exit
 ```

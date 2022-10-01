@@ -30,6 +30,7 @@ if __name__ == "__main__":
                         "[6] 更换抽卡开门人物\n"
                         "[7] 更换技能动画\n"
                         "[8] 更换G1胜利动作(实验性)\n"
+                        "[9] live服装解锁\n"
                         "[98] 复原所有修改\n"
                         "[99] 退出\n"
                         "请选择您的操作: ")
@@ -84,6 +85,10 @@ if __name__ == "__main__":
             print("请输入胜利动作6位数ID, 例: 100101、100102")
             uma.replace_race_result(input("替换ID: "), input("目标ID: "))
             print("替换完成")
+
+        if do_type == "9":
+            uma.unlock_live_dress()
+            print("解锁完成")
 
         if do_type == "98":
             uma.file_restore()
