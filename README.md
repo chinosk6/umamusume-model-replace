@@ -26,6 +26,9 @@ python main.py
 [3] replace tail model (deprecated)
 [4] replace head and body model
 [5] replace body materials
+[6] replace gacha character
+[7] replace skill character
+[8] replace g1 victory character action (Experimental)
 [98] restore your changes
 [99] exit
 ```
