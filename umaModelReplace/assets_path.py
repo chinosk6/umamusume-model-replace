@@ -1,4 +1,3 @@
-
 def get_body_mtl_names(_id):
     return [
         f"tex_bdy{_id}_shad_c",
@@ -40,10 +39,49 @@ def get_tail1_path(_id):
         f"3d/chara/tail/tail0001_00/textures/tex_tail0001_00_{_id[:4]}_shad_c_wet",
     ]
 
+
 def get_tail2_path(_id):
     return [
         f"3d/chara/tail/tail0002_00/textures/tex_tail0002_00_{_id[:4]}_diff",
         f"3d/chara/tail/tail0002_00/textures/tex_tail0002_00_{_id[:4]}_diff_wet",
         f"3d/chara/tail/tail0002_00/textures/tex_tail0002_00_{_id[:4]}_shad_c",
         f"3d/chara/tail/tail0002_00/textures/tex_tail0002_00_{_id[:4]}_shad_c_wet"
+    ]
+
+
+def get_gac_chr_start_path(type):
+    return f"cutt/cutin/skill/gac_chr_start_{type}/gac_chr_start_{type}"
+
+
+def get_cutin_skill_path(_id):
+    return f"cutt/cutin/skill/crd{_id}_001/crd{_id}_001"
+
+
+def get_race_result_path(_id):
+    return get_chr_race_result_path(_id) + get_crd_race_result_path(_id)
+
+
+def get_chr_race_result_path(_id):
+    return [
+        f"cutt/cutin/raceresult/res_chr{_id[:4]}_001/res_chr{_id[:4]}_001",
+        f"3d/motion/raceresult/body/chara/chr{_id[:4]}_00/anm_res_chr{_id[:4]}_001",
+        f"3d/motion/raceresult/camera/chara/chr{_id[:4]}_00/anm_res_chr{_id[:4]}_001_cam",
+        f"3d/motion/raceresult/facial/chara/chr{_id[:4]}_00/anm_res_chr{_id[:4]}_001_ear",
+        f"3d/motion/raceresult/facial/chara/chr{_id[:4]}_00/anm_res_chr{_id[:4]}_001_ear_driven",
+        f"3d/motion/raceresult/facial/chara/chr{_id[:4]}_00/anm_res_chr{_id[:4]}_001_face",
+        f"3d/motion/raceresult/facial/chara/chr{_id[:4]}_00/anm_res_chr{_id[:4]}_001_face_driven"
+    ]
+
+
+def get_crd_race_result_path(_id):
+    return [
+        f"cutt/cutin/raceresult/res_crd{_id}_001/res_crd{_id}_001",
+        f"3d/motion/raceresult/body/chara/chr{_id[:4]}_00/anm_res_crd{_id}_001",
+        f"3d/motion/raceresult/camera/chara/chr{_id[:4]}_00/anm_res_crd{_id}_001_cam",
+        f"3d/motion/raceresult/facial/chara/chr{_id[:4]}_00/anm_res_crd{_id}_001_ear",
+        f"3d/motion/raceresult/facial/chara/chr{_id[:4]}_00/anm_res_crd{_id}_001_ear_driven",
+        f"3d/motion/raceresult/facial/chara/chr{_id[:4]}_00/anm_res_crd{_id}_001_face",
+        f"3d/motion/raceresult/facial/chara/chr{_id[:4]}_00/anm_res_crd{_id}_001_face_driven",
+        f"sound/v/snd_voi_race_{_id}.acb",
+        f"sound/v/snd_voi_race_{_id}.awb"
     ]
