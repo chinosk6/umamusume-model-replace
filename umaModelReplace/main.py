@@ -425,6 +425,76 @@ class UmaReplace:
                 create_data(dress, unique)
         unlock_data()
 
+    def clear_live_blur(self, edit_id: str):
+        cursor = self.conn.cursor()
+        query = cursor.execute("SELECT h, n FROM a WHERE n LIKE 'cutt/cutt_son%/son%_camera'").fetchall()
+        bundle_names = [i[0] for i in query]
+        path_names = [i[1] for i in query]
+        cursor.close()
+        target_path = f"cutt/cutt_son{edit_id}/son{edit_id}_camera" if edit_id != "" else None
+        tLen = len(bundle_names)
+
+        for n, bn in enumerate(bundle_names):
+            path_name = path_names[n]
+            if target_path is not None:
+                if path_name != target_path:
+                    continue
+            print(f"Editing: {path_name} ({n + 1}/{tLen})")
+            try:
+                bundle_path = self.get_bundle_path(bn)
+                if not os.path.isfile(bundle_path):
+                    print(f"File not found: {bundle_path}")
+                    continue
+                env = UnityPy.load(bundle_path)
+                for obj in env.objects:
+                    if obj.type.name == "MonoBehaviour":
+                        if not obj.serialized_type.nodes:
+                            continue
+                        tree = obj.read_typetree()
+
+                        tree['postEffectDOFKeys']['thisList'] = [tree['postEffectDOFKeys']['thisList'][0]]
+                        dof_set_data = {
+                            "frame": 0,
+                            "attribute": 327680,
+                            "interpolateType": 0,
+                            "curve": {
+                                "m_Curve": [],
+                                "m_PreInfinity": 2,
+                                "m_PostInfinity": 2,
+                                "m_RotationOrder": 4
+                            },
+                            "easingType": 0,
+                            "forcalSize": 30.0,
+                            "blurSpread": 20.0,
+                            "charactor": 1,
+                            "dofBlurType": 3,
+                            "dofQuality": 1,
+                            "dofForegroundSize": 0.0,
+                            "dofFgBlurSpread": 1.0,
+                            "dofFocalPoint": 1.0,
+                            "dofSmoothness": 1.0,
+                            "BallBlurPowerFactor": 0.0,
+                            "BallBlurBrightnessThreshhold": 0.0,
+                            "BallBlurBrightnessIntensity": 1.0,
+                            "BallBlurSpread": 0.0
+                        }
+                        for k in dof_set_data:
+                            tree['postEffectDOFKeys']['thisList'][0][k] = dof_set_data[k]
+
+                        tree['postEffectBloomDiffusionKeys']['thisList'] = []
+                        tree['radialBlurKeys']['thisList'] = []
+
+                        obj.save_typetree(tree)
+
+                self.file_backup(bn)
+                with open(bundle_path, 'wb') as f:
+                    f.write(env.file.save())
+
+            except Exception as e:
+                print(f"Exception occurred when editing file: {bn}\n{e}")
+
+        print("done.")
+
 # a = UmaReplace()
 # a.file_backup("6NX7AYDRVFFGWKVGA4TDKUX2N63TRWRT")
 # a.replace_file_path("5IU2HDJHXDO3ISZSXXOQWXF7VEOG5OCX", "1046", "")

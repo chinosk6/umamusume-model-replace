@@ -30,7 +30,8 @@ if __name__ == "__main__":
                         "[6] 更换抽卡开门人物\n"
                         "[7] 更换技能动画\n"
                         "[8] 更换G1胜利动作(实验性)\n"
-                        "[9] live服装解锁\n"
+                        "[9] Live服装解锁\n"
+                        "[10] 清除Live所有模糊效果\n"
                         "[98] 复原所有修改\n"
                         "[99] 退出\n"
                         "请选择您的操作: ")
@@ -89,6 +90,13 @@ if __name__ == "__main__":
         if do_type == "9":
             uma.unlock_live_dress()
             print("解锁完成")
+
+        if do_type == "10":
+            edit_live_id = input("Live id (通常为4位, 留空则全部修改): ").strip()
+            uma.clear_live_blur(edit_live_id)
+            # print("此功能搭配TLG插件的Live自由镜头功能，使用效果更佳\n"
+            #       "This function is paired with the TLG plug-in's Live free camera for better use\n"
+            #       "Repo: https://github.com/MinamiChiwa/Trainers-Legend-G")
 
         if do_type == "98":
             uma.file_restore()

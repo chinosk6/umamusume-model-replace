@@ -30,6 +30,7 @@ python main.py
 [7] replace skill character
 [8] replace g1 victory character action (Experimental)
 [9] unlock live dress
+[10] disable live blur
 [98] restore your changes
 [99] exit
 ```
