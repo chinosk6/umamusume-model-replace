@@ -19,6 +19,25 @@ def replace_char_body_texture(char_id: str):
         uma.replace_char_body_texture(char_id)
         print("贴图已修改")
 
+def replace_char_head_texture(char_id: str):
+    for n, i in enumerate(uma.save_char_head_texture(char_id, False)):
+        is_not_exist, msg = i
+
+        if not is_not_exist:
+            print(f"解包资源已存在: {msg}")
+            do_replace = input("输入 \"Y\" 覆盖已解包资源, 输入其它内容跳过导出: ")
+            if do_replace in ["Y", "y"]:
+                _, msg = uma.save_char_head_texture(char_id, True, n)[0]
+
+        print(f"已尝试导出资源, 请查看目录: {msg}")
+
+    do_fin = input("请进行文件修改/替换, 修改完成后请输入 \"Y\" 打包并替换游戏文件。\n"
+                   "若您不想立刻修改, 可以输入其它任意内容退出, 您可以在下次替换时选择\"跳过导出\"\n"
+                   "请输入: ")
+    if do_fin.strip() in ["Y", "y"]:
+        uma.replace_char_head_texture(char_id)
+        print("贴图已修改")
+
 
 if __name__ == "__main__":
     while True:
@@ -32,6 +51,7 @@ if __name__ == "__main__":
                         "[8] 更换G1胜利动作(实验性)\n"
                         "[9] Live服装解锁\n"
                         "[10] 清除Live所有模糊效果\n"
+                        "[11] 修改角色头部贴图\n"
                         "[98] 复原所有修改\n"
                         "[99] 退出\n"
                         "请选择您的操作: ")
@@ -97,6 +117,10 @@ if __name__ == "__main__":
             # print("此功能搭配TLG插件的Live自由镜头功能，使用效果更佳\n"
             #       "This function is paired with the TLG plug-in's Live free camera for better use\n"
             #       "Repo: https://github.com/MinamiChiwa/Trainers-Legend-G")
+
+        if do_type == "11":
+            print("请输入7位数ID, 例: 1046_01")
+            replace_char_head_texture(input("角色7位ID: "))
 
         if do_type == "98":
             uma.file_restore()

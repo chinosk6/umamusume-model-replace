@@ -85,3 +85,10 @@ def get_crd_race_result_path(_id):
         f"sound/v/snd_voi_race_{_id}.acb",
         f"sound/v/snd_voi_race_{_id}.awb"
     ]
+
+
+def get_head_mtl_path(_id):
+    return [
+        f"sourceresources/3d/chara/head/chr{_id}/materials/mtl_chr{_id}_face",
+        f"sourceresources/3d/chara/head/chr{_id}/materials/mtl_chr{_id}_hair"
+    ]

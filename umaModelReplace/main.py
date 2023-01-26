@@ -122,7 +122,7 @@ class UmaReplace:
             f.write(env.file.save())
         return save_name
 
-    def get_texture_in_bundle(self, bundle_name: str, src_names: t.List[str], force_replace=False):
+    def get_texture_in_bundle(self, bundle_name: str, src_names: t.Optional[t.List[str]], force_replace=False):
         base_path = f"./editTexture/{bundle_name}"
         if not os.path.isdir(base_path):
             os.makedirs(base_path)
@@ -136,7 +136,7 @@ class UmaReplace:
             if obj.type.name == "Texture2D":
                 data = obj.read()
                 if hasattr(data, "name"):
-                    if data.name in src_names:
+                    if src_names is None or (data.name in src_names):
                         img_data = data.read()
                         image: Image = img_data.image
                         image.save(f"{base_path}/{data.name}.png")
@@ -167,6 +167,16 @@ class UmaReplace:
         bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
         return self.get_texture_in_bundle(bundle_hash, assets_path.get_body_mtl_names(char_id), force_replace)
 
+    def save_char_head_texture(self, char_id: str, force_replace=False, on_index=-1):
+        ret = []
+        for n, i in enumerate(assets_path.get_head_mtl_path(char_id)):
+            if on_index != -1:
+                if n != on_index:
+                    continue
+            bundle_hash = self.get_bundle_hash(i, None)
+            ret.append(self.get_texture_in_bundle(bundle_hash, None, force_replace))
+        return ret
+
     def replace_char_body_texture(self, char_id: str):
         mtl_bdy_path = assets_path.get_body_mtl_path(char_id)
         bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
@@ -174,6 +184,14 @@ class UmaReplace:
         edited_path = self.replace_texture2d(bundle_hash)
         # print("save", edited_path)
         shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
+
+    def replace_char_head_texture(self, char_id: str):
+        for mtl_bdy_path in assets_path.get_head_mtl_path(char_id):
+            bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
+            self.file_backup(bundle_hash)
+            edited_path = self.replace_texture2d(bundle_hash)
+            # print("save", edited_path)
+            shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
 
     def replace_file_ids(self, orig_path: str, new_path: str, id_orig: str, id_new: str):
         orig_hash = self.get_bundle_hash(orig_path, id_orig)
