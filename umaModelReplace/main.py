@@ -5,6 +5,8 @@ import shutil
 import typing as t
 from PIL import Image
 from . import assets_path
+import tkinter as tk
+from tkinter import filedialog
 
 spath = os.path.split(__file__)[0]
 BACKUP_PATH = f"{spath}/backup"
@@ -19,7 +21,8 @@ class UmaReplace:
     def __init__(self):
         self.init_folders()
         profile_path = os.environ.get("UserProfile")
-        self.base_path = f"{profile_path}/AppData/LocalLow/Cygames/umamusume"
+#        self.base_path = f"{profile_path}/AppData/LocalLow/Cygames/umamusume"
+        self.base_path = filedialog.askdirectory(title='选择同时包含dat文件夹,meta文件的文件夹',initialdir=f"{profile_path}/AppData/LocalLow/Cygames/umamusume") #选择同时包含dat文件夹,meta文件的文件夹
         self.conn = sqlite3.connect(f"{self.base_path}/meta")
         self.master_conn = sqlite3.connect(f"{self.base_path}/master/master.mdb")
 
@@ -104,22 +107,45 @@ class UmaReplace:
         edited_path = f"./editTexture/{bundle_name}"
         if not os.path.isdir(edited_path):
             raise UmaFileNotFoundError(f"path: {edited_path} not found. Please extract first.")
+        if os.path.exists(self.get_bundle_path(bundle_name)):
+            file_names = os.listdir(edited_path)
+            save_name = f"{EDITED_PATH}/{os.path.split(bundle_name)[-1]}"
+            env = UnityPy.load(self.get_bundle_path(bundle_name))
+            for obj in env.objects:
+                if obj.type.name == "Texture2D":
+                    data = obj.read()
+                    if hasattr(data, "name"):
+                        if f"{data.name}.png" in file_names:
+                            img_data = data.read()
+                            img_data.image = Image.open(f"{edited_path}/{data.name}.png")
+                            data.save()
 
-        file_names = os.listdir(edited_path)
+        
+            with open(save_name, "wb") as f:
+                f.write(env.file.save())
+			
+        return save_name
 
-        env = UnityPy.load(self.get_bundle_path(bundle_name))
-        for obj in env.objects:
-            if obj.type.name == "Texture2D":
-                data = obj.read()
-                if hasattr(data, "name"):
-                    if f"{data.name}.png" in file_names:
-                        img_data = data.read()
-                        img_data.image = Image.open(f"{edited_path}/{data.name}.png")
-                        data.save()
+    def replace_support_card_texture2d(self, card_id: str,bundle_name: str):
+        edited_path = f"./editTexture/support_card/{card_id}"
+        if not os.path.isdir(edited_path):
+            raise UmaFileNotFoundError(f"path: {edited_path} not found. Please extract first.")
+        if os.path.exists(self.get_bundle_path(bundle_name)):
+            file_names = os.listdir(edited_path)
+            save_name = f"{EDITED_PATH}/{os.path.split(bundle_name)[-1]}"
+            env = UnityPy.load(self.get_bundle_path(bundle_name))
+            for obj in env.objects:
+                if obj.type.name == "Texture2D":
+                    data = obj.read()
+                    if hasattr(data, "name"):
+                        if f"{data.name}.png" in file_names:
+                            img_data = data.read()
+                            image: Image = Image.open(f"{edited_path}/{data.name}.png")
+                            img_data.image = image
+                            data.save()
 
-        save_name = f"{EDITED_PATH}/{os.path.split(bundle_name)[-1]}"
-        with open(save_name, "wb") as f:
-            f.write(env.file.save())
+            with open(save_name, "wb") as f:
+                f.write(env.file.save())
         return save_name
 
     def get_texture_in_bundle(self, bundle_name: str, src_names: t.Optional[t.List[str]], force_replace=False):
@@ -141,7 +167,28 @@ class UmaReplace:
                         image: Image = img_data.image
                         image.save(f"{base_path}/{data.name}.png")
                         print(f"save {data.name} into {f'{base_path}/{data.name}.png'}")
-        return True, base_path
+        return True, base_path	
+
+    def get_support_card_texture_in_bundle(self, card_id: str,bundle_name: str, src_names: t.Optional[t.List[str]], force_replace=False):
+        base_path = f"./editTexture/support_card/{card_id}"
+        if not os.path.isdir(base_path):
+            os.makedirs(base_path)
+
+        if not force_replace:
+            if len(os.listdir(base_path)) > 0:
+                return False, base_path
+
+        env = UnityPy.load(self.get_bundle_path(bundle_name))
+        for obj in env.objects:
+            if obj.type.name == "Texture2D":
+                data = obj.read()
+                if hasattr(data, "name"):
+                    if src_names is None or (data.name in src_names):
+                        img_data = data.read()
+                        image: Image = img_data.image
+                        image.save(f"{base_path}/{data.name}.png")
+                        print(f"save {data.name} into {f'{base_path}/{data.name}.png'}")
+        return True, base_path	
 
     def get_bundle_hash(self, path: str, query_orig_id: t.Optional[str]) -> str:
         cursor = self.conn.cursor()
@@ -157,8 +204,9 @@ class UmaReplace:
                         print(f"{path} not found, but found {query[1]}")
 
         if query is None:
-            raise UmaFileNotFoundError(f"{path} not found!")
-
+            print(UmaFileNotFoundError(f"{path} not found!"))
+            query=[]
+            return query
         cursor.close()
         return query[0]
 
@@ -176,7 +224,10 @@ class UmaReplace:
             bundle_hash = self.get_bundle_hash(i, None)
             ret.append(self.get_texture_in_bundle(bundle_hash, None, force_replace))
         return ret
+		
 
+
+		
     def replace_char_body_texture(self, char_id: str):
         mtl_bdy_path = assets_path.get_body_mtl_path(char_id)
         bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
@@ -193,6 +244,54 @@ class UmaReplace:
             # print("save", edited_path)
             shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
 
+
+    def save_support_card_texture(self, card_id: str, force_replace=False, on_index=-1):
+        ret = []
+        for n, i in enumerate(assets_path.get_support_card_path(card_id)):
+            if on_index != -1:
+                if n != on_index:
+                    continue
+            bundle_hash = self.get_bundle_hash(i, None)
+            ret.append(self.get_support_card_texture_in_bundle(card_id,bundle_hash, None, force_replace))
+        return ret
+
+
+			
+			
+    def replace_support_card_texture(self, card_id: str):
+        for support_card_path in assets_path.get_support_card_path(card_id):
+            bundle_hash = self.get_bundle_hash(support_card_path, None)
+            if bundle_hash != []:
+                self.file_backup(bundle_hash)
+                edited_path = self.replace_support_card_texture2d(card_id,bundle_hash)
+                # print("save", edited_path)
+                shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))		
+                print("贴图已修改")
+
+    def save_support_thumb_texture(self, card_id: str, force_replace=False, on_index=-1):
+        ret = []
+        for n, i in enumerate(assets_path.get_support_thumb_path(card_id)):
+            if on_index != -1:
+                if n != on_index:
+                    continue
+            bundle_hash = self.get_bundle_hash(i, None)
+            ret.append(self.get_support_card_texture_in_bundle(card_id,bundle_hash, None, force_replace))
+        return ret
+
+
+			
+			
+    def replace_support_thumb_texture(self, card_id: str):
+        for support_thumb_path in assets_path.get_support_thumb_path(card_id):
+            bundle_hash = self.get_bundle_hash(support_thumb_path, None)
+            if bundle_hash != []:
+                self.file_backup(bundle_hash)
+                edited_path = self.replace_support_card_texture2d(card_id,bundle_hash)
+                # print("save", edited_path)
+                shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))		
+                print("贴图已修改")
+				
+		
     def replace_file_ids(self, orig_path: str, new_path: str, id_orig: str, id_new: str):
         orig_hash = self.get_bundle_hash(orig_path, id_orig)
         new_hash = self.get_bundle_hash(new_path, id_new)
