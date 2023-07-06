@@ -20,8 +20,9 @@ class UmaReplace:
     def __init__(self):
         self.init_folders()
         profile_path = os.environ.get("UserProfile")
-#        self.base_path = f"{profile_path}/AppData/LocalLow/Cygames/umamusume"
-        self.base_path = filedialog.askdirectory(title='选择同时包含dat文件夹,meta文件的文件夹',initialdir=f"{profile_path}/AppData/LocalLow/Cygames/umamusume") #选择同时包含dat文件夹,meta文件的文件夹
+        #        self.base_path = f"{profile_path}/AppData/LocalLow/Cygames/umamusume"
+        self.base_path = filedialog.askdirectory(title='选择同时包含dat文件夹,meta文件的文件夹',
+                                                 initialdir=f"{profile_path}/AppData/LocalLow/Cygames/umamusume")  # 选择同时包含dat文件夹,meta文件的文件夹
         self.conn = sqlite3.connect(f"{self.base_path}/meta")
         self.master_conn = sqlite3.connect(f"{self.base_path}/master/master.mdb")
 
@@ -55,7 +56,7 @@ class UmaReplace:
                 shutil.copyfile(fpath, self.get_bundle_path(i))
                 print(f"restore {i}")
         print("已还原修改")
-		
+
     def file_delete(self):
         do_delete = input("即将清理 backup,edited 文件夹,输入 \"Y\" 确认: ")
         if do_delete in ["Y", "y"]:
@@ -63,11 +64,12 @@ class UmaReplace:
             if do_restore in ["Y", "y"]:
                 self.file_restore()
             shutil.rmtree(BACKUP_PATH)
-            shutil.rmtree(EDITED_PATH)				
+            shutil.rmtree(EDITED_PATH)
             self.init_folders()
             print("已清理")
-        else:print("取消清理")
-				
+        else:
+            print("取消清理")
+
     @staticmethod
     def replace_file_path(fname: str, id1: str, id2: str, save_name: t.Optional[str] = None) -> str:
         env = UnityPy.load(fname)
@@ -132,10 +134,9 @@ class UmaReplace:
                             img_data.image = Image.open(f"{edited_path}/{data.name}.png")
                             data.save()
 
-        
             with open(save_name, "wb") as f:
                 f.write(env.file.save())
-			
+
         return save_name
 
     def get_texture_in_bundle(self, bundle_name: str, src_names: t.Optional[t.List[str]], force_replace=False,
@@ -158,11 +159,13 @@ class UmaReplace:
                         image: Image = img_data.image
                         image.save(f"{base_path}/{data.name}.png")
                         print(f"save {data.name} into {f'{base_path}/{data.name}.png'}")
-        return True, base_path	
+        return True, base_path
 
-    def get_support_card_texture_in_bundle(self, card_id: str, bundle_name: str, src_names: t.Optional[t.List[str]], force_replace=False):
-        return self.get_texture_in_bundle(bundle_name, src_names, force_replace, f"./editTexture/support_card/{card_id}")
-		
+    def get_support_card_texture_in_bundle(self, card_id: str, bundle_name: str, src_names: t.Optional[t.List[str]],
+                                           force_replace=False):
+        return self.get_texture_in_bundle(bundle_name, src_names, force_replace,
+                                          f"./editTexture/support_card/{card_id}")
+
     def get_bundle_hash(self, path: str, query_orig_id: t.Optional[str]) -> str:
         cursor = self.conn.cursor()
         query = cursor.execute("SELECT h FROM a WHERE n=?", [path]).fetchone()
@@ -178,7 +181,7 @@ class UmaReplace:
 
         if query is None:
             print(UmaFileNotFoundError(f"{path} not found!"))
-            query=[]
+            query = []
             return query
         cursor.close()
         return query[0]
@@ -197,7 +200,7 @@ class UmaReplace:
             bundle_hash = self.get_bundle_hash(i, None)
             ret.append(self.get_texture_in_bundle(bundle_hash, None, force_replace))
         return ret
-		
+
     def replace_char_body_texture(self, char_id: str):
         mtl_bdy_path = assets_path.get_body_mtl_path(char_id)
         bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
@@ -221,7 +224,7 @@ class UmaReplace:
                 if n != on_index:
                     continue
             bundle_hash = self.get_bundle_hash(i, None)
-            ret.append(self.get_support_card_texture_in_bundle(card_id,bundle_hash, None, force_replace))
+            ret.append(self.get_support_card_texture_in_bundle(card_id, bundle_hash, None, force_replace))
         return ret
 
     def replace_support_card_texture(self, card_id: str):
@@ -229,9 +232,9 @@ class UmaReplace:
             bundle_hash = self.get_bundle_hash(support_card_path, None)
             if bundle_hash:
                 self.file_backup(bundle_hash)
-                edited_path = self.replace_texture2d(bundle_hash,f"./editTexture/support_card/{card_id}")
+                edited_path = self.replace_texture2d(bundle_hash, f"./editTexture/support_card/{card_id}")
                 # print("save", edited_path)
-                shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))		
+                shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
                 print("贴图已修改")
 
     def save_support_thumb_texture(self, card_id: str, force_replace=False, on_index=-1):
@@ -241,7 +244,7 @@ class UmaReplace:
                 if n != on_index:
                     continue
             bundle_hash = self.get_bundle_hash(i, None)
-            ret.append(self.get_support_card_texture_in_bundle(card_id,bundle_hash, None, force_replace))
+            ret.append(self.get_support_card_texture_in_bundle(card_id, bundle_hash, None, force_replace))
         return ret
 
     def replace_support_thumb_texture(self, card_id: str):
@@ -249,9 +252,9 @@ class UmaReplace:
             bundle_hash = self.get_bundle_hash(support_thumb_path, None)
             if bundle_hash:
                 self.file_backup(bundle_hash)
-                edited_path = self.replace_texture2d(bundle_hash,f"./editTexture/support_card/{card_id}")
+                edited_path = self.replace_texture2d(bundle_hash, f"./editTexture/support_card/{card_id}")
                 # print("save", edited_path)
-                shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))		
+                shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
                 print("贴图已修改")
 
     def replace_file_ids(self, orig_path: str, new_path: str, id_orig: str, id_new: str):
