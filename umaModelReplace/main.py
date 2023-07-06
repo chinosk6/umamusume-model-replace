@@ -5,13 +5,11 @@ import shutil
 import typing as t
 from PIL import Image
 from . import assets_path
-import tkinter as tk
 from tkinter import filedialog
 
 spath = os.path.split(__file__)[0]
 BACKUP_PATH = f"{spath}/backup"
 EDITED_PATH = f"{spath}/edited"
-EDUT_TEXTURE_PATH = f"./editTexture"
 
 
 class UmaFileNotFoundError(FileNotFoundError):
@@ -119,13 +117,13 @@ class UmaReplace:
                 f.write(env.file.save())
         return save_name
 
-    def replace_texture2d(self, edited_path: str, bundle_name: str):
-        edited_path = f"{EDUT_TEXTURE_PATH}/{edited_path}"
+    def replace_texture2d(self, bundle_name: str, edited_path: t.Optional[str] = None):
+        edited_path = f"./editTexture/{bundle_name}" if edited_path is not None else edited_path
+        save_name = f"{EDITED_PATH}/{os.path.split(bundle_name)[-1]}"
         if not os.path.isdir(edited_path):
             raise UmaFileNotFoundError(f"path: {edited_path} not found. Please extract first.")
         if os.path.exists(self.get_bundle_path(bundle_name)):
             file_names = os.listdir(edited_path)
-            save_name = f"{EDITED_PATH}/{os.path.split(bundle_name)[-1]}"
             env = UnityPy.load(self.get_bundle_path(bundle_name))
             for obj in env.objects:
                 if obj.type.name == "Texture2D":
@@ -141,9 +139,9 @@ class UmaReplace:
 
         return save_name
 
-    def get_texture_in_bundle(self, base_path: str, bundle_name: str, src_names: t.Optional[t.List[str]],
-                              force_replace=False):
-        base_path = f"{EDUT_TEXTURE_PATH}/{base_path}"
+    def get_texture_in_bundle(self, bundle_name: str, src_names: t.Optional[t.List[str]], force_replace=False,
+                              base_path: t.Optional[str] = None):
+        base_path = f"./editTexture/{bundle_name}" if base_path is None else base_path
         if not os.path.isdir(base_path):
             os.makedirs(base_path)
 
@@ -163,6 +161,11 @@ class UmaReplace:
                         print(f"save {data.name} into {f'{base_path}/{data.name}.png'}")
         return True, base_path
 
+    def get_support_card_texture_in_bundle(self, card_id: str, bundle_name: str, src_names: t.Optional[t.List[str]],
+                                           force_replace=False):
+        return self.get_texture_in_bundle(bundle_name, src_names, force_replace,
+                                          f"./editTexture/support_card/{card_id}")
+
     def get_bundle_hash(self, path: str, query_orig_id: t.Optional[str]) -> str:
         cursor = self.conn.cursor()
         query = cursor.execute("SELECT h FROM a WHERE n=?", [path]).fetchone()
@@ -177,17 +180,14 @@ class UmaReplace:
                         print(f"{path} not found, but found {query[1]}")
 
         if query is None:
-            print(UmaFileNotFoundError(f"{path} not found!"))
-            query = []
-            return query
+            raise UmaFileNotFoundError(f"{path} not found!")
         cursor.close()
         return query[0]
 
     def save_char_body_texture(self, char_id: str, force_replace=False):
         mtl_bdy_path = assets_path.get_body_mtl_path(char_id)
         bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
-        return self.get_texture_in_bundle(f"char_body/{bundle_hash}", bundle_hash,
-                                          assets_path.get_body_mtl_names(char_id), force_replace)
+        return self.get_texture_in_bundle(bundle_hash, assets_path.get_body_mtl_names(char_id), force_replace)
 
     def save_char_head_texture(self, char_id: str, force_replace=False, on_index=-1):
         ret = []
@@ -196,14 +196,14 @@ class UmaReplace:
                 if n != on_index:
                     continue
             bundle_hash = self.get_bundle_hash(i, None)
-            ret.append(self.get_texture_in_bundle(f"char_head/{bundle_hash}", bundle_hash, None, force_replace))
+            ret.append(self.get_texture_in_bundle(bundle_hash, None, force_replace))
         return ret
 
     def replace_char_body_texture(self, char_id: str):
         mtl_bdy_path = assets_path.get_body_mtl_path(char_id)
         bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
         self.file_backup(bundle_hash)
-        edited_path = self.replace_texture2d(f"char_body/{bundle_hash}", bundle_hash)
+        edited_path = self.replace_texture2d(bundle_hash)
         # print("save", edited_path)
         shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
 
@@ -211,7 +211,7 @@ class UmaReplace:
         for mtl_bdy_path in assets_path.get_head_mtl_path(char_id):
             bundle_hash = self.get_bundle_hash(mtl_bdy_path, None)
             self.file_backup(bundle_hash)
-            edited_path = self.replace_texture2d(f"char_head/{bundle_hash}", bundle_hash)
+            edited_path = self.replace_texture2d(bundle_hash)
             # print("save", edited_path)
             shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
 
@@ -221,19 +221,30 @@ class UmaReplace:
             if on_index != -1:
                 if n != on_index:
                     continue
-            bundle_hash = self.get_bundle_hash(i, None)
-            ret.append(self.get_texture_in_bundle(f"support_card/{card_id}", bundle_hash, None, force_replace))
+            try:
+                bundle_hash = self.get_bundle_hash(i, None)
+                ret.append(self.get_support_card_texture_in_bundle(card_id, bundle_hash, None, force_replace))
+            except UmaFileNotFoundError as e:
+                print(e)
+                continue
         return ret
 
-    def replace_support_card_texture(self, card_id: str):
-        for support_card_path in assets_path.get_support_card_path(card_id):
-            bundle_hash = self.get_bundle_hash(support_card_path, None)
-            if bundle_hash != []:
+    def _replace_support_texture(self, paths: t.List[str], card_id):
+        for support_card_path in paths:
+            try:
+                bundle_hash = self.get_bundle_hash(support_card_path, None)
+            except UmaFileNotFoundError as e:
+                print(e)
+                continue
+            if bundle_hash:
                 self.file_backup(bundle_hash)
-                edited_path = self.replace_texture2d(f"support_card/{card_id}", bundle_hash)
+                edited_path = self.replace_texture2d(bundle_hash, f"./editTexture/support_card/{card_id}")
                 # print("save", edited_path)
                 shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
                 print("贴图已修改")
+
+    def replace_support_card_texture(self, card_id: str):
+        return self._replace_support_texture(assets_path.get_support_card_path(card_id), card_id)
 
     def save_support_thumb_texture(self, card_id: str, force_replace=False, on_index=-1):
         ret = []
@@ -241,19 +252,16 @@ class UmaReplace:
             if on_index != -1:
                 if n != on_index:
                     continue
-            bundle_hash = self.get_bundle_hash(i, None)
-            ret.append(self.get_texture_in_bundle(f"support_card/{card_id}", bundle_hash, None, force_replace))
+            try:
+                bundle_hash = self.get_bundle_hash(i, None)
+                ret.append(self.get_support_card_texture_in_bundle(card_id, bundle_hash, None, force_replace))
+            except UmaFileNotFoundError as e:
+                print(e)
+                continue
         return ret
 
     def replace_support_thumb_texture(self, card_id: str):
-        for support_thumb_path in assets_path.get_support_thumb_path(card_id):
-            bundle_hash = self.get_bundle_hash(support_thumb_path, None)
-            if bundle_hash != []:
-                self.file_backup(bundle_hash)
-                edited_path = self.replace_support_card_texture2d(card_id, bundle_hash)
-                # print("save", edited_path)
-                shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))
-                print("贴图已修改")
+        return self._replace_support_texture(assets_path.get_support_thumb_path(card_id), card_id)
 
     def replace_file_ids(self, orig_path: str, new_path: str, id_orig: str, id_new: str):
         orig_hash = self.get_bundle_hash(orig_path, id_orig)
@@ -342,11 +350,11 @@ class UmaReplace:
             except UmaFileNotFoundError as e:
                 print(e)
 
-    def edit_gac_chr_start(self, dress_id: str, type: str):
+    def edit_gac_chr_start(self, dress_id: str, res_type: str):
         """
         替换开门人物
         :param dress_id: 目标开门id, 例: 100101
-        :param type: 001骏川手纲，002秋川弥生
+        :param res_type: 001骏川手纲，002秋川弥生
         """
 
         def edit_chr(orig_hash: str, dress_id: str):
@@ -362,7 +370,7 @@ class UmaReplace:
             with open(f"{EDITED_PATH}/{orig_hash}", "wb") as f:
                 f.write(env.file.save())
 
-        path = assets_path.get_gac_chr_start_path(type)
+        path = assets_path.get_gac_chr_start_path(res_type)
         orig_hash = self.get_bundle_hash(path, None)
         self.file_backup(orig_hash)
         edit_chr(orig_hash, dress_id)
@@ -465,10 +473,10 @@ class UmaReplace:
             names = cursor.fetchall()
             # close connection
             cursor.close()
-            list = []
+            lst = []
             for name in names:
-                list.append(name["n"][-7:-3])
-            return list
+                lst.append(name["n"][-7:-3])
+            return lst
 
         def create_data(dress, unique):
             dress['id'] = dress['id'] + 89
