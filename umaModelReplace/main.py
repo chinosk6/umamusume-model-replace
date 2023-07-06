@@ -116,8 +116,8 @@ class UmaReplace:
                 f.write(env.file.save())
         return save_name
 
-    def replace_texture2d(self, bundle_name: str, edited_path: t.Optional[str] = None):
-        edited_path = f"./editTexture/{bundle_name}" if edited_path is not None else edited_path
+    def replace_texture2d(self, bundle_name: str):
+        edited_path = f"./editTexture/{bundle_name}"
         if not os.path.isdir(edited_path):
             raise UmaFileNotFoundError(f"path: {edited_path} not found. Please extract first.")
         if os.path.exists(self.get_bundle_path(bundle_name)):
@@ -139,10 +139,27 @@ class UmaReplace:
 			
         return save_name
 
- 
+    def replace_support_card_texture2d(self, card_id: str,bundle_name: str):
+        edited_path = f"./editTexture/support_card/{card_id}"
+        if not os.path.isdir(edited_path):
+            raise UmaFileNotFoundError(f"path: {edited_path} not found. Please extract first.")
+        if os.path.exists(self.get_bundle_path(bundle_name)):
+            file_names = os.listdir(edited_path)
+            save_name = f"{EDITED_PATH}/{os.path.split(bundle_name)[-1]}"
+            env = UnityPy.load(self.get_bundle_path(bundle_name))
+            for obj in env.objects:
+                if obj.type.name == "Texture2D":
+                    data = obj.read()
+                    if hasattr(data, "name"):
+                        if f"{data.name}.png" in file_names:
+                            img_data = data.read()
+                            image: Image = Image.open(f"{edited_path}/{data.name}.png")
+                            img_data.image = image
+                            data.save()
 
-
-
+            with open(save_name, "wb") as f:
+                f.write(env.file.save())
+        return save_name
 
     def get_texture_in_bundle(self, bundle_name: str, src_names: t.Optional[t.List[str]], force_replace=False):
         base_path = f"./editTexture/{bundle_name}"
@@ -185,7 +202,7 @@ class UmaReplace:
                         image.save(f"{base_path}/{data.name}.png")
                         print(f"save {data.name} into {f'{base_path}/{data.name}.png'}")
         return True, base_path	
-		
+
     def get_bundle_hash(self, path: str, query_orig_id: t.Optional[str]) -> str:
         cursor = self.conn.cursor()
         query = cursor.execute("SELECT h FROM a WHERE n=?", [path]).fetchone()
@@ -259,7 +276,7 @@ class UmaReplace:
             bundle_hash = self.get_bundle_hash(support_card_path, None)
             if bundle_hash != []:
                 self.file_backup(bundle_hash)
-                edited_path = self.replace_support_card_texture2d(bundle_hash,f"./editTexture/support_card/{card_id}")
+                edited_path = self.replace_support_card_texture2d(card_id,bundle_hash)
                 # print("save", edited_path)
                 shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))		
                 print("贴图已修改")
@@ -282,7 +299,7 @@ class UmaReplace:
             bundle_hash = self.get_bundle_hash(support_thumb_path, None)
             if bundle_hash != []:
                 self.file_backup(bundle_hash)
-                edited_path = self.replace_support_card_texture2d(bundle_hash,f"./editTexture/support_card/{card_id}")
+                edited_path = self.replace_support_card_texture2d(card_id,bundle_hash)
                 # print("save", edited_path)
                 shutil.copyfile(edited_path, self.get_bundle_path(bundle_hash))		
                 print("贴图已修改")
