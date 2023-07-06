@@ -99,8 +99,8 @@ def get_support_card_path(_id):
         f"supportcard/support{_id}/tex_support_card_{_id}"
     ]
 
+
 def get_support_thumb_path(_id):
     return [
         f"supportcard/support{_id}/support_thumb_{_id}"
     ]
-
