@@ -55,7 +55,20 @@ class UmaReplace:
             if os.path.isfile(fpath):
                 shutil.copyfile(fpath, self.get_bundle_path(i))
                 print(f"restore {i}")
-
+        print("已还原修改")
+		
+    def file_delete(self):
+        do_delete = input("即将清理 backup,edited 文件夹,输入 \"Y\" 确认: ")
+        if do_delete in ["Y", "y"]:
+            do_restore = input("输入 \"Y\" 在清理前复原所有修改: ")
+            if do_restore in ["Y", "y"]:
+                self.file_restore()
+            shutil.rmtree(BACKUP_PATH)
+            shutil.rmtree(EDITED_PATH)				
+            self.init_folders()
+            print("已清理")
+        else:print("取消清理")
+				
     @staticmethod
     def replace_file_path(fname: str, id1: str, id2: str, save_name: t.Optional[str] = None) -> str:
         env = UnityPy.load(fname)
