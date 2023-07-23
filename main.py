@@ -158,7 +158,7 @@ if __name__ == "__main__":
             replace_support_thumb_texture(input("支援卡ID: "), True)
 
         if do_type == "25":
-            file = r'.\editTexture\support_card'
+            file = r'.\umaModelReplace\Texture2D\support_card'
             for dirpath, dirnames, filenames in os.walk(file):
                 for dirname in dirnames:
                     print(dirname)
