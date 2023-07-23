@@ -119,14 +119,14 @@ class UmaReplace:
                 f.write(env.file.save())
         return save_name
 
-    def replace_texture2d(self, bundle_name: str):
-        edited_path = f"{EDUT_TEXTURE_PATH}/{bundle_name}"
+    def replace_texture2d(self, path: str):
+        edited_path = f"{EDUT_TEXTURE_PATH}/{path}"
         if not os.path.isdir(edited_path):
             raise UmaFileNotFoundError(f"path: {edited_path} not found. Please extract first.")
-        if os.path.exists(self.get_bundle_path(bundle_name)):
+        if os.path.exists(self.get_bundle_path(path)):
             file_names = os.listdir(edited_path)
-            save_name = f"{EDITED_PATH}/{os.path.split(bundle_name)[-1]}"
-            env = UnityPy.load(self.get_bundle_path(bundle_name))
+            save_name = f"{EDITED_PATH}/{os.path.split(path)[-1]}"
+            env = UnityPy.load(self.get_bundle_path(path))
             for obj in env.objects:
                 if obj.type.name == "Texture2D":
                     data = obj.read()
