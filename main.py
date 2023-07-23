@@ -1,8 +1,10 @@
 import umaModelReplace
 import os
+import shutil
+import UnityPy
 
 uma = umaModelReplace.UmaReplace()
-
+MOD_PATH=r'.\umaModelReplace\edited'
 
 def replace_char_body_texture(char_id: str):
     is_not_exist, msg = uma.save_char_body_texture(char_id, False)
@@ -102,6 +104,7 @@ if __name__ == "__main__":
                         "[4]  更换G1胜利动作(实验性)\n"
                         "[51] Live服装解锁\n"
                         "[52] 清除Live所有模糊效果\n"
+                        "[8]  安装MOD\n"
                         "[9]  复原所有修改\n"
                         "[91] 清理 backup,edited 文件夹\n"
                         "[0] 退出\n"
@@ -189,9 +192,20 @@ if __name__ == "__main__":
             #       "This function is paired with the TLG plug-in's Live free camera for better use\n"
             #       "Repo: https://github.com/MinamiChiwa/Trainers-Legend-G")
 
+
+
+
+        if do_type == "8":
+            for dirpath, dirnames, filenames in os.walk(MOD_PATH):
+                for filename in filenames:
+                    file_path = os.path.join(dirpath, filename)
+                    if os.path.isfile(uma.get_bundle_path(filename)):
+                        uma.file_backup(filename)
+                        shutil.copyfile(file_path, uma.get_bundle_path(filename))
+						
         if do_type == "9":
             uma.file_restore()
-
+			
         if do_type == "91":
             uma.file_delete()
 
