@@ -2,9 +2,10 @@ import umaModelReplace
 import os
 import shutil
 import UnityPy
+from tkinter import filedialog
 
 uma = umaModelReplace.UmaReplace()
-MOD_PATH=r'.\umaModelReplace\edited'
+
 
 def replace_char_body_texture(char_id: str):
     is_not_exist, msg = uma.save_char_body_texture(char_id, False)
@@ -88,6 +89,19 @@ def replace_support_thumb_texture(card_id: str, overwrite: bool):
         uma.replace_support_thumb_texture(card_id)
 
 
+def get_bundle_name(fullPath):
+    begin = fullPath.rfind("/") + 1
+    end = fullPath.rfind(".")
+    if end != -1:
+        result = fullPath[begin:end]
+    else:
+        result = fullPath[begin:]
+    return result
+
+
+
+
+
 if __name__ == "__main__":
     while True:
         do_type = input("[11] 更换头部模型\n"
@@ -161,7 +175,7 @@ if __name__ == "__main__":
             replace_support_thumb_texture(input("支援卡ID: "), True)
 
         if do_type == "25":
-            file = r'.\umaModelReplace\Texture2D\support_card'
+            file = f"{umaModelReplace.EDITED_TEXTURE_PATH}/support_card"
             for dirpath, dirnames, filenames in os.walk(file):
                 for dirname in dirnames:
                     print(dirname)
@@ -196,11 +210,21 @@ if __name__ == "__main__":
 
 
         if do_type == "8":
-            for dirpath, dirnames, filenames in os.walk(MOD_PATH):
+            for dirpath, dirnames, filenames in os.walk(umaModelReplace.EDITED_PATH):
+               for filename in filenames:
+                   file_path = os.path.join(dirpath, filename)
+                   if os.path.isfile(uma.get_bundle_path(filename)):
+                       base = UnityPy.load(file_path)
+                       name: str
+                       for key, value in base.container.items():
+                           name = get_bundle_name(key)
+                           print(name)
+                           shutil.copyfile(file_path, f"{umaModelReplace.MOD_PATH}/{filename}")           
+            print("开始安装")
+            for dirpath, dirnames, filenames in os.walk(umaModelReplace.MOD_PATH):
                 for filename in filenames:
                     file_path = os.path.join(dirpath, filename)
                     if os.path.isfile(uma.get_bundle_path(filename)):
-                        uma.file_backup(filename)
                         shutil.copyfile(file_path, uma.get_bundle_path(filename))
 						
         if do_type == "9":

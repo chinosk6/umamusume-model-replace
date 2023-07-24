@@ -12,7 +12,7 @@ spath = os.path.split(__file__)[0]
 BACKUP_PATH = f"{spath}/backup"
 EDITED_PATH = f"{spath}/edited"
 EDITED_TEXTURE_PATH = f"{spath}/Texture2D"
-
+MOD_PATH= f"{spath}/Mods"
 
 class UmaFileNotFoundError(FileNotFoundError):
     pass
@@ -34,9 +34,13 @@ class UmaReplace:
             os.makedirs(BACKUP_PATH)
         if not os.path.isdir(EDITED_PATH):
             os.makedirs(EDITED_PATH)
+        if not os.path.isdir(MOD_PATH):
+            os.makedirs(MOD_PATH)
+
 
     def get_bundle_path(self, bundle_hash: str):
         return f"{self.base_path}/dat/{bundle_hash[:2]}/{bundle_hash}"
+
 
     def file_backup(self, bundle_hash: str):
         if not os.path.isfile(f"{BACKUP_PATH}/{bundle_hash}"):
@@ -163,7 +167,7 @@ class UmaReplace:
 
     def get_bundle_hash(self, path: str, query_orig_id: t.Optional[str]) -> str:
         cursor = self.conn.cursor()
-        query = cursor.execute("SELECT h FROM a WHERE n=?", [path]).fetchone()
+        query = cursor.execute("SELECT h FROM a WHERE n like ?", [path]).fetchone()
         if query is None:
             if (query_orig_id is not None) and ("_" in query_orig_id):
                 query_id, query_sub_id = query_orig_id.split("_")
