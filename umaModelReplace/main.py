@@ -59,8 +59,9 @@ class UmaReplace:
         for i in hashs:
             fpath = f"{BACKUP_PATH}/{i}"
             if os.path.isfile(fpath):
-                shutil.copyfile(fpath, self.get_bundle_path(i))
-                print(f"restore {i}")
+                if os.path.exists(self.get_bundle_path(i)):
+                    shutil.move(fpath, self.get_bundle_path(i))
+                    print(f"restore {i}")
         print("已还原修改")
 
     def file_delete(self):
