@@ -99,9 +99,6 @@ def get_bundle_name(fullPath):
     return result
 
 
-
-
-
 if __name__ == "__main__":
     while True:
         do_type = input("[11] 更换头部模型\n"
@@ -206,30 +203,27 @@ if __name__ == "__main__":
             #       "This function is paired with the TLG plug-in's Live free camera for better use\n"
             #       "Repo: https://github.com/MinamiChiwa/Trainers-Legend-G")
 
-
-
-
         if do_type == "8":
             for dirpath, dirnames, filenames in os.walk(umaModelReplace.EDITED_PATH):
-               for filename in filenames:
-                   file_path = os.path.join(dirpath, filename)
-                   if os.path.isfile(uma.get_bundle_path(filename)):
-                       base = UnityPy.load(file_path)
-                       name: str
-                       for key, value in base.container.items():
-                           name = get_bundle_name(key)
-                           print(name)
-                           shutil.copyfile(file_path, f"{umaModelReplace.MOD_PATH}/{filename}")           
+                for filename in filenames:
+                    file_path = os.path.join(dirpath, filename)
+                    if os.path.isfile(uma.get_bundle_path(filename)):
+                        base = UnityPy.load(file_path)
+                        name: str
+                        for key, value in base.container.items():
+                            name = get_bundle_name(key)
+                            print(name)
+                            shutil.copyfile(file_path, f"{umaModelReplace.MOD_PATH}/{filename}")
             print("开始安装")
             for dirpath, dirnames, filenames in os.walk(umaModelReplace.MOD_PATH):
                 for filename in filenames:
                     file_path = os.path.join(dirpath, filename)
                     if os.path.isfile(uma.get_bundle_path(filename)):
                         shutil.copyfile(file_path, uma.get_bundle_path(filename))
-						
+
         if do_type == "9":
             uma.file_restore()
-			
+
         if do_type == "91":
             uma.file_delete()
 
