@@ -219,7 +219,7 @@ if __name__ == "__main__":
                 for filename in filenames:
                     file_path = os.path.join(dirpath, filename)
                     if os.path.isfile(uma.get_bundle_path(filename)):
-                        shutil.copyfile(file_path, uma.get_bundle_path(filename))
+                        shutil.move(file_path, uma.get_bundle_path(filename))
 
         if do_type == "9":
             uma.file_restore()
