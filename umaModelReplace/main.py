@@ -12,7 +12,8 @@ spath = os.path.split(__file__)[0]
 BACKUP_PATH = f"{spath}/backup"
 EDITED_PATH = f"{spath}/edited"
 EDITED_TEXTURE_PATH = f"{spath}/Texture2D"
-MOD_PATH= f"{spath}/Mods"
+MOD_PATH = f"{spath}/Mods"
+
 
 class UmaFileNotFoundError(FileNotFoundError):
     pass
@@ -37,10 +38,8 @@ class UmaReplace:
         if not os.path.isdir(MOD_PATH):
             os.makedirs(MOD_PATH)
 
-
     def get_bundle_path(self, bundle_hash: str):
         return f"{self.base_path}/dat/{bundle_hash[:2]}/{bundle_hash}"
-
 
     def file_backup(self, bundle_hash: str):
         if not os.path.isfile(f"{BACKUP_PATH}/{bundle_hash}"):
