@@ -417,7 +417,7 @@ class UmaReplace:
                 dress['head_sub_id'] = 0
             self.master_conn.row_factory = dict_factory
             cursor = self.master_conn.cursor()
-            cursor.execute("INSERT INTO dress_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            cursor.execute("INSERT INTO dress_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                            [dress['id'], dress['condition_type'], dress['have_mini'], dress['general_purpose'],
                             dress['costume_type'], dress['chara_id'], dress['use_gender'], dress['body_shape'],
                             dress['body_type'], dress['body_type_sub'], dress['body_setting'], dress['use_race'],
@@ -425,7 +425,8 @@ class UmaReplace:
                             dress['is_wet'], dress['is_dirt'], dress['head_sub_id'], dress['use_season'],
                             dress['dress_color_main'], dress['dress_color_sub'], dress['color_num'],
                             dress['disp_order'],
-                            dress['tail_model_id'], dress['tail_model_sub_id'], dress['start_time'], dress['end_time']])
+                            dress['tail_model_id'], dress['tail_model_sub_id'], dress['mini_mayu_shader_type'],
+                            dress['start_time'], dress['end_time']])
             self.master_conn.commit()
             cursor.close()
 
